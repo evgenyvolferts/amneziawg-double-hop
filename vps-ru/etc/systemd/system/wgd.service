@@ -1,0 +1,18 @@
+[Unit]
+After=syslog.target network-online.target
+Wants=awg-quick.target
+ConditionPathIsDirectory=/etc/amnezia/amneziawg
+
+[Service]
+Type=forking
+PIDFile=/opt/wgd/src/gunicorn.pid
+WorkingDirectory=/opt/wgd/src
+ExecStart=/opt/wgd/src/wgd.sh start
+ExecStop=/opt/wgd/src/wgd.sh stop
+ExecReload=/opt/wgd/src/wgd.sh restart
+TimeoutSec=120
+PrivateTmp=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
