@@ -38,17 +38,23 @@ apt update && apt install -y amneziawg amneziawg-tools
 Для более ранних версий Debian и других дистрибутивов используйте инструкцию из [официального репозитория](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module#installation).
 
 ## Настройка параметров ядра на VPS-EU и VPS-RU
-Необходимо настроить два параметра ядра.
+Необходимо настроить несколько параметров ядра.
 
 Первый — стандартный для VPN-серверов форвардинг пакетов.
 
-Второй — включение алгоритма управления перегрузкой TCP BBR, разработанного Google. На практике оказалось, что для double-hop схемы это критически важно: без BBR скорость через два туннеля может падать до 3–7 Мбит/с.
+Второй — включение алгоритма управления перегрузкой TCP BBR, разработанного Google. На практике оказалось, что для double-hop схемы это критически важно: без BBR скорость через два туннеля может падать до 3–7 Мбит/с. Для включения BBR необходимо изменить и `default_qdisc`.
+
+И последний — увеличивает лимит для `conntrack`.
 
 В итоге в `/etc/sysctl.conf` должны присутствовать следующие параметры:
 ```
 net.ipv4.ip_forward=1
+
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
+
+net.netfilter.nf_conntrack_max = 1048576
+net.nf_conntrack_max = 1048576
 ```
 Сохраните изменения и примените их:
 ```bash
@@ -317,7 +323,13 @@ systemctl enable --now awg-quick@awg1.service
 
 Список российских IP-адресов и подсетей в формате `nftables` находится в файле `vps-ru/etc/nftables.russia.zone`. Скопируйте его в `/etc/nftables.russia.zone`.
 
-В строке `tcp flags syn tcp option maxseg size set 1240` в цепи `forward` нужно указать значение `MTU` интерфейса `awg1`, уменьшенное на 40.
+В цепочках `forward` таблицы `inet filter ` и `postrouting` таблицы `inet nat` нужно указать значение `MTU` интерфейса `awg1`, уменьшенное на 40 (в примере это 1240):
+```
+tcp flags syn tcp option maxseg size set 1240
+```
+```
+oifname $WAN_IF tcp flags syn tcp option maxseg size set 1240
+```
 
 Порты 80 и 443 в этом конфиге разрешены для того, чтобы `Caddy` мог получить TLS-сертификат. Порт 4443 также используется `Caddy` — он проксирует запросы к `WGDashboard`.
 
@@ -340,6 +352,7 @@ table inet filter {
         type filter hook input priority filter; policy drop;
         ct state established,related accept
         ct state invalid drop
+        ip protocol icmp icmp type { destination-unreachable, time-exceeded } accept
         iif "lo" accept
         tcp dport 22 accept
         tcp dport 80 accept
@@ -352,6 +365,7 @@ table inet filter {
     chain forward {
         type filter hook forward priority filter; policy drop;
         ct state established,related accept
+        ip protocol icmp icmp type { destination-unreachable, time-exceeded } accept
         tcp flags syn tcp option maxseg size set 1240
         iifname $AWG_IN_IF oifname $WAN_IF accept
         iifname $AWG_IN_IF oifname $AWG_OUT_IF accept
@@ -371,15 +385,16 @@ table ip mangle {
     
     chain prerouting {
         type filter hook prerouting priority mangle; policy accept;
-        ct state established,related accept
+        meta mark set ct mark
         ip daddr { $AWG_OUT_NET, $AWG_IN_NET } accept
-        ip daddr @russia counter meta mark set 2
+        iifname $AWG_IN_IF ip daddr @russia ct state new ct mark set 2 meta mark set 2
     }
 }
 
 table inet nat {
     chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
+        oifname $WAN_IF tcp flags syn tcp option maxseg size set 1240
         ip saddr $AWG_IN_NET oifname != $AWG_IN_IF masquerade
     }
 }
