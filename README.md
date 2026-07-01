@@ -267,8 +267,8 @@ MTU = 1280
 Table = off
 PostUp = ip link set dev awg1 txqueuelen 10000
 PostUp = ip rule add fwmark 2 table main priority 90
-PostUp = ip rule add from 10.0.1.0/24 table 200 priority 100
-PostDown = ip rule del from 10.0.1.0/24 table 200 priority 100
+PostUp = ip rule add from 10.0.2.0/24 table 200 priority 100
+PostDown = ip rule del from 10.0.2.0/24 table 200 priority 100
 PostDown = ip rule delete fwmark 2 table main priority 90
 
 ListenPort = 36712
