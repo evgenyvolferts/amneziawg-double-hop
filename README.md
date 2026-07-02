@@ -485,7 +485,9 @@ systemctl daemon-reload && systemctl enable --now wgd.service
 
 При первом входе система предложит изменить логин и пароль, а также настроить двухфакторную авторизацию.
 
-После входа выберите `awg1` в списке конфигураций и добавьте пиров. `WGDashboard` позволяет экспортировать клиентские конфиги как файлами, так и QR-кодами.
+После входа в разделе `WGDashboard` → `Settings` → `Peer Settings` очистите `DNS`, `MTU`, поменяйте `Persistent Keepalive` на `25` (значение из [документации WireGuard](https://www.wireguard.com/quickstart/#nat-and-firewall-traversal-persistence)). В случае использования доменного имени вместо IP адреса для подключения клиентов - введите его в поле `Peer Remote Endpoint`.
+
+Далее в списке конфигураций выберите `awg1`, откройте `Configuration Settings` и укажите значение `1280` в поле `MTU`, а также `DNS` по желанию.  Следующим шагом добавьте пиров (клиентов). `WGDashboard` позволяет экспортировать клиентские конфиги как файлами, так и QR-кодами.
 
 Если вы открываете дашборд во внешнюю сеть, отключите `Client Side App` в разделе `WGDashboard` → `Clients` → `Settings`.
 
