@@ -56,10 +56,15 @@ net.ipv4.tcp_congestion_control=bbr
 net.netfilter.nf_conntrack_max = 1048576
 net.nf_conntrack_max = 1048576
 ```
-Сохраните изменения и примените их:
+Загрузите модуль ядра для отслеживания соединений (`modprobe` проверяет, загружен ли модуль - если он уже в памяти, команда ничего не сделает):
+```
+modprobe nf_conntrack
+``` 
+Примените новые настройки:
 ```bash
 sysctl -p
 ```
+
 
 ## Настройка AmneziaWG на VPS-EU
 Ниже приведен пример настройки интерфейса `awg0`, который используется для туннеля между VPS-EU и VPS-RU.
@@ -110,7 +115,7 @@ awg genkey | tee private.key | awg pubkey > public.key
 ```bash
 systemctl enable --now awg-quick@awg0.service
 ```
-Проверить, что интерфейс поднялся, можно командой:
+Проверьте, что интерфейс поднялся:
 ```bash
 ip a
 ```
