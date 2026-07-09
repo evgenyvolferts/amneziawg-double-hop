@@ -46,31 +46,36 @@ apt update && apt install -y amneziawg amneziawg-tools
 
 И последний — увеличивает лимит для `conntrack`.
 
-В итоге в `/etc/sysctl.conf` должны присутствовать следующие параметры:
-```
-net.ipv4.ip_forward=1
+В Debian 13 (и других системах, использующих `systemd` версии 256 и новее) файл `/etc/sysctl.conf` более не обрабатывается системой при загрузке, теперь служба `systemd-sysctl` читает конфигурационные файлы только из папки `/etc/sysctl.d`.
+Запишите следующие параметры в файл `/etc/sysctl.d/sysctl.conf`:
+```ini
+net.ipv4.ip_forward = 1
 
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
 
 net.netfilter.nf_conntrack_max = 1048576
 net.nf_conntrack_max = 1048576
 ```
-Загрузите модуль ядра для отслеживания соединений (`modprobe` проверяет, загружен ли модуль - если он уже в памяти, команда ничего не сделает):
-```
-modprobe nf_conntrack
-``` 
-Примените новые настройки:
+Проверьте, что модуль ядра для отслеживания соединений `nf_conntrack` загружен:
 ```bash
-sysctl -p
+lsmod | grep nf_conntrack
 ```
-
+Если вывод предыдущей команды пустой, включите загрузку модуля при старте системы и загрузите модуль вручную:
+```bash
+echo "nf_conntrack" | tee /etc/modules-load.d/nf_conntrack.conf
+modprobe nf_conntrack
+```
+Примените новые параметры ядра:
+```bash
+systemctl restart systemd-sysctl
+```
 
 ## Настройка AmneziaWG на VPS-EU
 Ниже приведен пример настройки интерфейса `awg0`, который используется для туннеля между VPS-EU и VPS-RU.
 
 `PostUp` хук увеличивает размер очереди передачи пакетов для интерфейса `awg0`. По умолчанию в Linux это значение равно 500.
-```
+```ini
 # /etc/amnezia/amneziawg/awg0.conf
 
 [Interface]
@@ -197,7 +202,7 @@ systemctl enable --now nftables.service
 Параметр `Table = off` нужен для того, чтобы `awg-quick` не создавал маршрут по умолчанию через туннель. В противном случае можно потерять доступ к серверу по SSH.
 
 Немаркированный трафик из клиентской сети `awg1` будет направляться в туннель `awg0` с помощью `PostUp` хуков.
-```
+```ini
 # /etc/amnezia/amneziawg/awg0.conf
 
 [Interface]
@@ -263,7 +268,7 @@ curl --interface awg0 https://checkip.amazonaws.com
 Для этого интерфейса лучше сгенерировать отдельный набор параметров `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`.
 
 Также немного уменьшаем `MTU`. На практике это помогает избежать просадок скорости. 
-```
+```ini
 # /etc/amnezia/amneziawg/awg1.conf
 
 [Interface]
@@ -460,7 +465,7 @@ LocalForward 127.0.0.1:8000 127.0.0.1:10086
 ```
 
 Подготовьте unit-файл `/etc/systemd/system/wgd.service`:
-```unit file (systemd)
+```ini
 [Unit]
 After=syslog.target network-online.target
 Wants=awg-quick.target
