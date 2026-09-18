@@ -1,5 +1,5 @@
 ## Вступление
-Данная инструкция описывает настройку double-hop VPN-сервера на базе AmneziaWG 2.0, `nftables` и `WGDashboard`.
+Данная инструкция описывает настройку double-hop VPN-сервера на базе AmneziaWG 3.1, `nftables` и `WGDashboard`.
 
 `nftables` используется не только как межсетевой экран, но и для хранения списка российских IP-адресов и подсетей. Трафик от клиентов к этим адресам маркируется и направляется напрямую через российский VPS, а остальной клиентский трафик уходит через внешний VPS.
 
@@ -85,33 +85,45 @@ PrivateKey = <VPS-EU-AWG0-PRIVATE-KEY>
 
 PostUp = ip link set dev awg0 txqueuelen 10000
 
-Jc = 5
-Jmin = 64
-Jmax = 1024
+Jc = 
+Jmin = 
+Jmax = 
 
-S1 = 56
-S2 = 64
-S3 = 23
-S4 = 6
+S1 = 
+S2 = 
+S3 = 
+S4 = 
 
-H1 = 1199437766-1199437834
-H2 = 1014306829-1014306972
-H3 = 2039511259-2039511268
-H4 = 587455332-646200865
+H1 = 
+H2 = 
+H3 = 
+H4 = 
 
-I1 = <b 0xc200000001109ae33c30cb2166d67277406ca37fe3300f4f20619cb7084c7e33bebfa88a92270cc346ae159542288d25af11b8e12915d1><rc 8><t><r 96>
-I2 = <b 0xc10000000108f8f944f8664e326710189301db483372bda1ca5ea8d3ba10f513aeb416b6b28fa181d7876d789b2bab0a8559fce0110d3e><rc 15><t><r 96>
-I3 = <b 0xc2000000010cf55a38c2424858c8db1013d514b1708acb76b84436caca0d6c8b5ae6158a0c0fda00000157c1><rc 13><t><r 100>
-I4 = <b 0xc000000001101343a082d9b74eeb9e106880edc8b9ee02413f00c74177ed><rc 14><t><r 104>
-I5 = <b 0xc100000001086296da29b90dfbee116817633d1fe298718a72cb99b0dab876b30d6f0da03fac81e54d44914d52f26c1f6ae5><rc 13><t><r 118>
+I1 = 
+I2 = 
+I3 = 
+I4 = 
+I5 =
+
+HeaderProtectionKey = 
+ContentPaddingAddition = 
+RekeyAfterTime = 
+RekeyTimeout = 
+RejectAfterTime = 
+KeepaliveTimeout = 
+MaxHandshakeAttempts = 
 
 [Peer]
 PublicKey = <VPS-RU-AWG0-PUBLIC-KEY>
 AllowedIPs = 10.0.1.2/32
 ```
-Для генерации конфига AmneziaWG 2.0 можно использовать [AmneziaWG Architect](https://architect.vai-rice.space).
+Для генерации конфига AmneziaWG 3.1 можно использовать [AmneziaWG Architect](https://architect.vai-rice.space/amneziawg).
 
-Из сгенерированного конфига нужно перенести параметы `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5` в пример выше, а также заполнить параметры `PrivateKey` в секции `[Interface]` и `PublicKey` в секции `[Peer]`.
+Из сгенерированного конфига нужно перенести параметы `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`, `ContentPaddingAddition`, `RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`, `MaxHandshakeAttempts` в пример выше, а также заполнить параметры `PrivateKey` и `HeaderProtectionKey` в секции `[Interface]` и `PublicKey` в секции `[Peer]`.
+`HeaderProtectionKey` можно сгенерировать так:
+```bash
+openssl rand -base64 32
+```
 Пары ключей можно сгенерировать так:
 ```bash
 awg genkey | tee private.key | awg pubkey > public.key
@@ -197,7 +209,7 @@ systemctl enable --now nftables.service
 ### Настройка туннеля между VPS-EU и VPS-RU
 Ниже приведен пример настройки интерфейса `awg0`, который используется для туннеля между VPS-EU и VPS-RU.
 
-Параметры `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5` должны совпадать с параметрами, указанными в конфиге `awg0` на VPS-EU.
+Параметры `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`, `HeaderProtectionKey`, `ContentPaddingAddition`, `RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`, `MaxHandshakeAttempts` должны совпадать с параметрами, указанными в конфиге `awg0` на VPS-EU.
 
 Параметр `Table = off` нужен для того, чтобы `awg-quick` не создавал маршрут по умолчанию через туннель. В противном случае можно потерять доступ к серверу по SSH.
 
@@ -214,31 +226,39 @@ PostUp = ip link set dev awg0 txqueuelen 10000
 PostUp = ip route add default dev awg0 table 200
 PostDown = ip route del default dev awg0 table 200
 
-Jc = 5
-Jmin = 64
-Jmax = 1024
+Jc =
+Jmin =
+Jmax =
 
-S1 = 56
-S2 = 64
-S3 = 23
-S4 = 6
+S1 =
+S2 =
+S3 =
+S4 =
 
-H1 = 1199437766-1199437834
-H2 = 1014306829-1014306972
-H3 = 2039511259-2039511268
-H4 = 587455332-646200865
+H1 =
+H2 =
+H3 =
+H4 =
 
-I1 = <b 0xc200000001109ae33c30cb2166d67277406ca37fe3300f4f20619cb7084c7e33bebfa88a92270cc346ae159542288d25af11b8e12915d1><rc 8><t><r 96>
-I2 = <b 0xc10000000108f8f944f8664e326710189301db483372bda1ca5ea8d3ba10f513aeb416b6b28fa181d7876d789b2bab0a8559fce0110d3e><rc 15><t><r 96>
-I3 = <b 0xc2000000010cf55a38c2424858c8db1013d514b1708acb76b84436caca0d6c8b5ae6158a0c0fda00000157c1><rc 13><t><r 100>
-I4 = <b 0xc000000001101343a082d9b74eeb9e106880edc8b9ee02413f00c74177ed><rc 14><t><r 104>
-I5 = <b 0xc100000001086296da29b90dfbee116817633d1fe298718a72cb99b0dab876b30d6f0da03fac81e54d44914d52f26c1f6ae5><rc 13><t><r 118>
+I1 =
+I2 =
+I3 =
+I4 =
+I5 =
+
+HeaderProtectionKey =
+ContentPaddingAddition =
+RekeyAfterTime =
+RekeyTimeout =
+RejectAfterTime =
+KeepaliveTimeout =
+MaxHandshakeAttempts =
 
 [Peer]
 PublicKey = <VPS-EU-AWG0-PUBLIC-KEY>
 AllowedIPs = 10.0.1.1/32, 0.0.0.0/0
 Endpoint = <VPS-EU-EXTERNAL-IP>:32304
-PersistentKeepalive = 25
+PersistentKeepalive = 22-30
 ```
 После завершения редактирования конфига запустите сервис:
 ```bash
@@ -265,7 +285,7 @@ curl --interface awg0 https://checkip.amazonaws.com
 
 В конфиге намеренно указана только секция `[Interface]`, так как клиентов удобнее добавлять позже через `WGDashboard`.
 
-Для этого интерфейса лучше сгенерировать отдельный набор параметров `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`.
+Для этого интерфейса лучше сгенерировать отдельный набор параметров `Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`, `HeaderProtectionKey`, `ContentPaddingAddition`, `RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`, `MaxHandshakeAttempts`.
 
 Также немного уменьшаем `MTU`. На практике это помогает избежать просадок скорости. 
 ```ini
@@ -284,25 +304,33 @@ PostDown = ip rule delete fwmark 2 table main priority 90
 ListenPort = 36712
 PrivateKey = <VPS-RU-AWG1-PRIVATE-KEY>
 
-Jc = 8
-Jmin = 64
-Jmax = 1024
+Jc = 
+Jmin = 
+Jmax = 
 
-S1 = 48
-S2 = 4
-S3 = 55
-S4 = 8
+S1 = 
+S2 = 
+S3 = 
+S4 = 
 
-H1 = 1619721451-1619721510
-H2 = 1527340628-1527340686
-H3 = 1186297813-1186297827
-H4 = 487507927-536258719
+H1 = 
+H2 = 
+H3 = 
+H4 = 
 
-I1 = <b 0xc3000000010cfa7f417734cc0c42ec07bd8f14e50e95bf89b25546312eaf72522f3bc75d1767c40aa4418f9374273c98349baa48b51c><rc 11><t><r 108>
-I2 = <b 0xc0000000010cb79c92fc653c35fb9e89ca8a0a6dfc730ae72798da8e020e561bb5ab01a78a4e70b5a4a7424b77d877e1><rc 10><t><r 82>
-I3 = <b 0xc2000000010e91a466bbe7d4f313b499db9af8f903834076185fe8cd857c630531faafa9554ebdca767d07fa442f7a9687d894fb40><rc 24><t><r 134>
-I4 = <b 0xc0000000011428a5e87c3efacfd95fca246e3bb04d952c60c2250385ffa81185a15a1550746938a5581e91e8284a8a55b7d30b0a><rc 18><t><r 122>
-I5 = <b 0xc0000000010cb45b9ab84724a7c6c49ed38111a248955b7885151b1a8fe04b822b50f1cb1e5cf994f4832d2f55ea9fc9ce998df187a92858e5414e5c6f2de1a964df4c14a486a0><rc 13><t><r 98>
+I1 = 
+I2 = 
+I3 = 
+I4 = 
+I5 =
+
+HeaderProtectionKey =
+ContentPaddingAddition =
+RekeyAfterTime =
+RekeyTimeout =
+RejectAfterTime =
+KeepaliveTimeout =
+MaxHandshakeAttempts = 
 ```
 Запустите сервис:
 ```bash
@@ -429,9 +457,12 @@ nft -f /etc/nftables.conf
 ```
 
 ## Установка и настройка панели управления WGDashboard на VPS-RU
-Установите `WGDashboard` аналогично официальной инструкции, но без установки пакетов оригинального `wireguard` и `iptables`:
+Так как на данный момент AmneziaWG 3.0/3.1 не поддерживается в `WGDashboard`, можно использовать мой форк. Установка аналогична официальной инструкции с некоторыми дополнениями - вам понадобится npm (Node.js package manager):
 ```bash
-git clone https://github.com/WGDashboard/WGDashboard.git /opt/wgd && \
+git clone https://github.com/evgenyvolferts/WGDashboard.git /opt/wgd && \
+cd /opt/wgd/src/static/app && \
+npm install && \
+npm run buid && \
 cd /opt/wgd/src && \
 chmod +x ./wgd.sh && \
 ./wgd.sh install
