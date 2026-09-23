@@ -462,7 +462,7 @@ nft -f /etc/nftables.conf
 git clone https://github.com/evgenyvolferts/WGDashboard.git /opt/wgd && \
 cd /opt/wgd/src/static/app && \
 npm install && \
-npm run buid && \
+npm run build && \
 cd /opt/wgd/src && \
 chmod +x ./wgd.sh && \
 ./wgd.sh install
